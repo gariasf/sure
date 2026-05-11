@@ -205,8 +205,14 @@ Rails.application.routes.draw do
     resource :ai_prompts, only: :show
     resource :llm_usage, only: :show
     resource :guides, only: :show
-    resource :bank_sync, only: :show, controller: "bank_sync"
-    resource :providers, only: %i[show update]
+    get "bank_sync", to: redirect("/settings/providers", status: 301)
+    resource :providers, only: %i[show update] do
+      collection do
+        post :sync_all
+        post ":provider_key/sync", action: :sync, as: :sync_provider
+        get ":provider_key/connect_form", action: :connect_form, as: :connect_form
+      end
+    end
   end
 
   resource :subscription, only: %i[new show create] do
@@ -453,6 +459,8 @@ Rails.application.routes.draw do
       resources :transactions, only: [ :index, :show, :create, :update, :destroy ]
       resources :trades, only: [ :index, :show, :create, :update, :destroy ]
       resources :holdings, only: [ :index, :show ]
+      resources :transfers, only: [ :index, :show ]
+      resources :rejected_transfers, only: [ :index, :show ]
       resources :valuations, only: [ :index, :create, :update, :show ]
       resources :recurring_transactions, only: [ :index, :show, :create, :update, :destroy ]
       resources :family_exports, only: [ :index, :show, :create ] do
@@ -558,8 +566,12 @@ Rails.application.routes.draw do
     end
 
     member do
+      post :connect_institution
       post :sync
+      post :toggle_manual_sync
       post :balances
+      get :connection_status
+      post :submit_mfa
       get :setup_accounts
       post :complete_account_setup
     end
